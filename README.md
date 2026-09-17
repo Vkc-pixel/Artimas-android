@@ -8,4 +8,4 @@ Android 10+ accessibility communication app prototype.
 - Klausyti: lietuvių kalbos speech-to-text, A+/A-
 - Pokalbis: pradinis UI prototipas
 
-GitHub Actions builds a debug APK for phone testing.
+GitHub Actions automatiškai sukuria testinį debug APK kiekvienam `main` atnaujinimui.
