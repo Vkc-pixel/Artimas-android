@@ -99,8 +99,8 @@ fun WriteScreen(size:Float,plus:()->Unit,minus:()->Unit){
     var keyboardVisible by remember{mutableStateOf(true)}
     val letters=listOf(
         listOf("E","R","T","Y","U","I","O","P"),
-        listOf("A","S","D","F","G","H","J","K","L"),
-        listOf("Z","X","C","V","B","N","M")
+        listOf("A","S","D","F","G","H","J","K"),
+        listOf("L","Z","X","C","V","B","N","M")
     )
     val numbers=listOf(
         listOf("1","2","3","4","5"),
@@ -168,8 +168,12 @@ fun ListenScreen(size:Float,plus:()->Unit,minus:()->Unit){
     var r by remember{mutableStateOf<SpeechRecognizer?>(null)}
     var listening by remember{mutableStateOf(false)}
     var startAfterPermission by remember{mutableStateOf(false)}
+
     fun startRecognition(){
-        if(!SpeechRecognizer.isRecognitionAvailable(c)){text="Kalbos atpažinimas šiame telefone nepasiekiamas.";return}
+        if(!SpeechRecognizer.isRecognitionAvailable(c)){
+            text="Kalbos atpažinimas šiame telefone nepasiekiamas."
+            return
+        }
         r?.destroy()
         r=SpeechRecognizer.createSpeechRecognizer(c)
         r?.setRecognitionListener(object:RecognitionListener{
@@ -178,9 +182,18 @@ fun ListenScreen(size:Float,plus:()->Unit,minus:()->Unit){
             override fun onRmsChanged(p0:Float){}
             override fun onBufferReceived(p0:ByteArray?){}
             override fun onEndOfSpeech(){}
-            override fun onError(code:Int){if(listening)text="Nepavyko atpažinti kalbos. Paspauskite PRADĖTI dar kartą.";listening=false}
-            override fun onResults(b:Bundle?){b?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)?.firstOrNull()?.let{text=it};listening=false}
-            override fun onPartialResults(b:Bundle?){b?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)?.firstOrNull()?.let{text=it}}
+            override fun onError(code:Int){
+                if(listening) text="Nepavyko atpažinti kalbos. Paspauskite PRADĖTI dar kartą."
+                listening=false
+            }
+            override fun onResults(b:Bundle?){
+                b?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)?.firstOrNull()?.let{text=it}
+                listening=false
+                vibrate(c)
+            }
+            override fun onPartialResults(b:Bundle?){
+                b?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)?.firstOrNull()?.let{text=it}
+            }
             override fun onEvent(p0:Int,p1:Bundle?){}
         })
         val i=Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply{
@@ -192,16 +205,27 @@ fun ListenScreen(size:Float,plus:()->Unit,minus:()->Unit){
         listening=true
         r?.startListening(i)
     }
+
     val permission=rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()){granted->
-        if(granted&&startAfterPermission){startAfterPermission=false;startRecognition()}
-        else if(!granted){startAfterPermission=false;text="Reikia leisti naudoti mikrofoną."}
+        if(granted && startAfterPermission){
+            startAfterPermission=false
+            startRecognition()
+        }else if(!granted){
+            startAfterPermission=false
+            text="Reikia leisti naudoti mikrofoną."
+        }
     }
+
     DisposableEffect(Unit){onDispose{listening=false;r?.destroy()}}
+
     fun start(){
+        if(listening) return
         if(c.checkSelfPermission(Manifest.permission.RECORD_AUDIO)!=PackageManager.PERMISSION_GRANTED){
-            startAfterPermission=true;permission.launch(Manifest.permission.RECORD_AUDIO)
+            startAfterPermission=true
+            permission.launch(Manifest.permission.RECORD_AUDIO)
         }else startRecognition()
     }
+
     Column(Modifier.fillMaxSize().padding(10.dp)){
         Box(Modifier.weight(1f).fillMaxWidth().border(1.dp,Color.Gray,RoundedCornerShape(8.dp)).background(Panel,RoundedCornerShape(8.dp)).padding(16.dp)){
             Text(text,color=White,fontSize=size.sp,fontWeight=FontWeight.SemiBold,lineHeight=(size*1.04f).sp)
@@ -210,8 +234,7 @@ fun ListenScreen(size:Float,plus:()->Unit,minus:()->Unit){
         Row(Modifier.height(64.dp),horizontalArrangement=Arrangement.spacedBy(6.dp)){
             OutlineButton("A−",Modifier.weight(.8f).fillMaxHeight(),30,onClick=minus)
             OutlineButton("A+",Modifier.weight(.8f).fillMaxHeight(),30,onClick=plus)
-            OutlineButton(if(listening)"KLAUSAU…" else "PRADĖTI",Modifier.weight(1.6f).fillMaxHeight(),22,if(listening)Green else Green,onClick={start()})
-            OutlineButton("BAIGTI",Modifier.weight(1.2f).fillMaxHeight(),24,Red,onClick={listening=false;r?.cancel()})
+            OutlineButton(if(listening)"KLAUSAU…" else "PRADĖTI",Modifier.weight(2.4f).fillMaxHeight(),26,Green,onClick={start()})
         }
     }
 }
