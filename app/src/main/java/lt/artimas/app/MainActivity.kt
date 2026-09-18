@@ -15,7 +15,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.*\nimport androidx.compose.foundation.layout.navigationBarsPadding\nimport androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -50,7 +50,7 @@ fun vibrate(c:Context){c.getSystemService(Vibrator::class.java)?.vibrate(Vibrati
             override fun onRmsChanged(p0:Float){}
             override fun onBufferReceived(p0:ByteArray?){}
             override fun onEndOfSpeech(){}
-            override fun onError(code:Int){if(listening) text="Nepavyko atpažinti kalbos. Paspauskite PRADĖTI dar kartą."}
+            override fun onError(code:Int){if(listening) text="Nepavyko atpažinti kalbos. Paspauskite PRADĖTI dar kartą.";listening=false}
             override fun onResults(b:Bundle?){b?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)?.firstOrNull()?.let{text=it};listening=false}
             override fun onPartialResults(b:Bundle?){b?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)?.firstOrNull()?.let{text=it}}
             override fun onEvent(p0:Int,p1:Bundle?){}
