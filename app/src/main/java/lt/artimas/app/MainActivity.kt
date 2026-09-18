@@ -38,6 +38,7 @@ private val Purple=Color(0xFF7A35D8)
 private val Red=Color(0xFFFF3038)
 private val Panel=Color(0xFF070909)
 enum class Tab { WRITE, LISTEN, CHAT }
+enum class AppRole { CHOOSE, ASSISTED, FAMILY }
 
 class MainActivity:ComponentActivity(){
     override fun onCreate(savedInstanceState:Bundle?){
@@ -75,10 +76,13 @@ fun OutlineButton(
 
 @Composable
 fun AccessibilityApp(){
+    var role by remember{mutableStateOf(AppRole.CHOOSE)}
     var tab by remember{mutableStateOf(Tab.WRITE)}
     var size by remember{mutableFloatStateOf(64f)}
     val c=LocalContext.current
     Surface(Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding(),color=Bg){
+        if(role==AppRole.CHOOSE){ RoleChoiceScreen({role=AppRole.ASSISTED},{role=AppRole.FAMILY}); return@Surface }
+        if(role==AppRole.FAMILY){ FamilyChatScreen(onBack={role=AppRole.CHOOSE}); return@Surface }
         Column{
             Box(Modifier.weight(1f)){
                 when(tab){
@@ -88,6 +92,47 @@ fun AccessibilityApp(){
                 }
             }
             BottomNav(tab){vibrate(c);tab=it}
+        }
+    }
+}
+
+@Composable
+fun RoleChoiceScreen(assisted:()->Unit,family:()->Unit){
+    Column(Modifier.fillMaxSize().padding(18.dp),verticalArrangement=Arrangement.Center,horizontalAlignment=Alignment.CenterHorizontally){
+        Text("ARTIMAS",color=White,fontSize=48.sp,fontWeight=FontWeight.SemiBold)
+        Spacer(Modifier.height(36.dp))
+        OutlineButton("PAGALBOS REŽIMAS",Modifier.fillMaxWidth().height(92.dp),28,Green,onClick=assisted)
+        Spacer(Modifier.height(18.dp))
+        OutlineButton("ŠEIMOS NARYS",Modifier.fillMaxWidth().height(92.dp),30,Purple,onClick=family)
+    }
+}
+
+@Composable
+fun FamilyChatScreen(onBack:()->Unit){
+    var draft by remember{mutableStateOf("")}
+    var messages by remember{mutableStateOf(listOf("Mama, aš atvažiuosiu apie 18 valandą." to true,"Gerai, lauksiu." to false))}
+    Column(Modifier.fillMaxSize().padding(10.dp)){
+        Row(Modifier.fillMaxWidth(),verticalAlignment=Alignment.CenterVertically){
+            Text("MAMA",color=White,fontSize=32.sp,fontWeight=FontWeight.SemiBold,modifier=Modifier.weight(1f))
+            OutlineButton("REŽIMAS",Modifier.width(112.dp).height(48.dp),17,onClick=onBack)
+        }
+        Spacer(Modifier.height(8.dp))
+        Column(Modifier.weight(1f).fillMaxWidth(),verticalArrangement=Arrangement.Bottom){
+            messages.takeLast(5).forEach{(m,mine)->
+                Row(Modifier.fillMaxWidth(),horizontalArrangement=if(mine) Arrangement.End else Arrangement.Start){
+                    Column(Modifier.fillMaxWidth(.86f).border(1.dp,if(mine) Green else White,RoundedCornerShape(9.dp)).padding(10.dp)){
+                        Text(m,color=White,fontSize=25.sp,lineHeight=29.sp)
+                        Text(if(mine)"Perskaityta ✓" else "Mama",color=Color.LightGray,fontSize=15.sp)
+                    }
+                }
+                Spacer(Modifier.height(7.dp))
+            }
+        }
+        OutlinedTextField(value=draft,onValueChange={draft=it},modifier=Modifier.fillMaxWidth(),placeholder={Text("Parašyti žinutę...")},textStyle=LocalTextStyle.current.copy(color=White,fontSize=22.sp),colors=OutlinedTextFieldDefaults.colors(focusedBorderColor=White,unfocusedBorderColor=Color.Gray,focusedTextColor=White,unfocusedTextColor=White))
+        Spacer(Modifier.height(6.dp))
+        Row(Modifier.height(62.dp),horizontalArrangement=Arrangement.spacedBy(6.dp)){
+            OutlineButton("DIKTUOTI",Modifier.weight(1f).fillMaxHeight(),21,Blue,onClick={})
+            OutlineButton("SIŲSTI",Modifier.weight(1.25f).fillMaxHeight(),25,Green,onClick={if(draft.isNotBlank()){messages=messages+(draft.trim() to true);draft=""}})
         }
     }
 }
@@ -241,17 +286,21 @@ fun ListenScreen(size:Float,plus:()->Unit,minus:()->Unit){
 
 @Composable
 fun ChatScreen(size:Float,plus:()->Unit,minus:()->Unit){
+    var read by remember{mutableStateOf(false)}
     Column(Modifier.fillMaxSize().padding(10.dp)){
-        Text("Šeimos narys",color=White,fontSize=30.sp,fontWeight=FontWeight.SemiBold)
-        Column(Modifier.weight(1f),verticalArrangement=Arrangement.Bottom){
-            Text("Kaip jautiesi?\nAr jau pavalgei?",color=White,fontSize=size.sp,lineHeight=(size*1.04f).sp,modifier=Modifier.border(1.dp,White,RoundedCornerShape(8.dp)).padding(12.dp))
+        Text(if(read)"PERSKAITYTA" else "NAUJA ŽINUTĖ",color=if(read)Green else Purple,fontSize=27.sp,fontWeight=FontWeight.SemiBold)
+        Spacer(Modifier.height(7.dp))
+        Box(Modifier.weight(1f).fillMaxWidth().border(1.dp,White,RoundedCornerShape(8.dp)).background(Panel,RoundedCornerShape(8.dp)).padding(14.dp)){
+            Text("Mama, aš atvažiuosiu apie 18 valandą.",color=White,fontSize=size.sp,fontWeight=FontWeight.SemiBold,lineHeight=(size*1.04f).sp)
         }
-        Spacer(Modifier.height(8.dp))
-        Row(Modifier.height(64.dp),horizontalArrangement=Arrangement.spacedBy(6.dp)){
-            OutlineButton("A−",Modifier.weight(.8f).fillMaxHeight(),30,onClick=minus)
-            OutlineButton("A+",Modifier.weight(.8f).fillMaxHeight(),30,onClick=plus)
-            OutlineButton("ATSAKYTI BALSU",Modifier.weight(2.6f).fillMaxHeight(),22,Red,onClick={})
+        Spacer(Modifier.height(7.dp))
+        Row(Modifier.height(58.dp),horizontalArrangement=Arrangement.spacedBy(6.dp)){
+            OutlineButton("A−",Modifier.weight(.75f).fillMaxHeight(),28,onClick=minus)
+            OutlineButton("A+",Modifier.weight(.75f).fillMaxHeight(),28,onClick=plus)
+            OutlineButton(if(read)"PERSKAITYTA ✓" else "PERSKAIČIAU",Modifier.weight(2.1f).fillMaxHeight(),22,Green,onClick={read=true})
         }
+        Spacer(Modifier.height(6.dp))
+        OutlineButton("ATSAKYTI BALSU",Modifier.fillMaxWidth().height(66.dp),25,Red,onClick={})
     }
 }
 
